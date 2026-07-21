@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                      String       @id @default(cuid())
+  username                String       @unique @db.VarChar(24)
+  passwordHash            String
+  createdAt               DateTime     @default(now())
+  lastNotificationCheckAt DateTime     @default(now())
+  sessions                Session[]
+  reviews                 Review[]
+  friends                 Friendship[] @relation("FriendOwner")
+  friendedBy              Friendship[] @relation("FriendTarget")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Game {
+  id          Int       @id
+  slug        String
+  name        String
+  summary     String?   @db.Text
+  coverUrl    String?
+  releaseDate DateTime?
+  genres      String[]
+  platforms   String[]
+  igdbRating  Float?
+  popularity  Float?
+  updatedAt   DateTime  @updatedAt
+  reviews     Review[]
+
+  @@index([name])
+  @@index([popularity(sort: Desc)])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  body      String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  gameId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId])
+  @@index([createdAt(sort: Desc)])
+  @@index([gameId, createdAt(sort: Desc)])
+}
+
+model Friendship {
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+  user      User     @relation("FriendOwner", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User     @relation("FriendTarget", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@id([userId, friendId])
+  @@index([friendId])
+}

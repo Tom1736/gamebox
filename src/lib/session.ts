@@ -1,0 +1,79 @@
+import "server-only";
+
+import { createHash, randomBytes } from "node:crypto";
+import { cache } from "react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+
+const SESSION_COOKIE = "gamebox_session";
+const SESSION_LENGTH_MS = 30 * 24 * 60 * 60 * 1000;
+
+function hashToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export async function createSession(userId: string) {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + SESSION_LENGTH_MS);
+
+  await prisma.session.create({
+    data: {
+      tokenHash: hashToken(token),
+      expiresAt,
+      userId,
+    },
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: expiresAt,
+    priority: "high",
+  });
+}
+
+export const getCurrentUser = cache(async () => {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+
+  const session = await prisma.session.findUnique({
+    where: { tokenHash: hashToken(token) },
+    select: {
+      expiresAt: true,
+      user: {
+        select: {
+          id: true,
+          username: true,
+          createdAt: true,
+          lastNotificationCheckAt: true,
+        },
+      },
+    },
+  });
+
+  if (!session || session.expiresAt <= new Date()) return null;
+  return session.user;
+});
+
+export async function requireUser() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
+export async function deleteSession() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+
+  if (token) {
+    await prisma.session.deleteMany({
+      where: { tokenHash: hashToken(token) },
+    });
+  }
+
+  cookieStore.delete(SESSION_COOKIE);
+}
