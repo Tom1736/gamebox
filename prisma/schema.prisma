@@ -13,15 +13,22 @@ datasource db {
 }
 
 model User {
-  id                      String       @id @default(cuid())
-  username                String       @unique @db.VarChar(24)
+  id                      String          @id @default(cuid())
+  username                String          @unique @db.VarChar(24)
   passwordHash            String
-  createdAt               DateTime     @default(now())
-  lastNotificationCheckAt DateTime     @default(now())
+  bio                     String?         @db.VarChar(500)
+  avatarBytes             Bytes?
+  avatarMimeType          String?         @db.VarChar(32)
+  avatarUpdatedAt         DateTime?
+  createdAt               DateTime        @default(now())
+  lastNotificationCheckAt DateTime        @default(now())
   sessions                Session[]
   reviews                 Review[]
-  friends                 Friendship[] @relation("FriendOwner")
-  friendedBy              Friendship[] @relation("FriendTarget")
+  comments                ReviewComment[]
+  favoriteGames           FavoriteGame[]
+  wishlist                WishlistEntry[]
+  friends                 Friendship[]    @relation("FriendOwner")
+  friendedBy              Friendship[]    @relation("FriendTarget")
 }
 
 model Session {
@@ -37,37 +44,89 @@ model Session {
 }
 
 model Game {
-  id          Int       @id
-  slug        String
-  name        String
-  summary     String?   @db.Text
-  coverUrl    String?
-  releaseDate DateTime?
-  genres      String[]
-  platforms   String[]
-  igdbRating  Float?
-  popularity  Float?
-  updatedAt   DateTime  @updatedAt
-  reviews     Review[]
+  id           Int             @id
+  slug         String
+  name         String
+  summary      String?         @db.Text
+  coverUrl     String?
+  releaseDate  DateTime?
+  genres       String[]
+  platforms    String[]
+  igdbRating   Float?
+  popularity   Float?
+  updatedAt    DateTime        @updatedAt
+  reviews      Review[]
+  favoritedBy  FavoriteGame[]
+  wishlistedBy WishlistEntry[]
 
   @@index([name])
   @@index([popularity(sort: Desc)])
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  rating    Int
-  body      String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  gameId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  id          String          @id @default(cuid())
+  rating      Float
+  body        String?         @db.Text
+  hoursPlayed Float?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  userId      String
+  gameId      Int
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game        Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  comments    ReviewComment[]
 
   @@unique([userId, gameId])
   @@index([createdAt(sort: Desc)])
   @@index([gameId, createdAt(sort: Desc)])
+}
+
+model ReviewComment {
+  id        String   @id @default(cuid())
+  body      String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  reviewId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId, createdAt])
+  @@index([userId])
+}
+
+model FavoriteGame {
+  userId    String
+  gameId    Int
+  position  Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([userId, gameId])
+  @@unique([userId, position])
+  @@index([gameId])
+}
+
+model WishlistEntry {
+  userId    String
+  gameId    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([userId, gameId])
+  @@index([gameId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model RateLimitBucket {
+  key       String   @id @db.VarChar(64)
+  count     Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
 }
 
 model Friendship {

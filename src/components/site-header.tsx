@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { UserAvatar } from "@/components/user-avatar";
 import { getUnreadNotificationCount } from "@/lib/data";
 import { getCurrentUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -25,7 +26,7 @@ export async function SiteHeader() {
           <span className="flex size-9 items-center justify-center rounded-xl bg-lime-300 text-slate-950 shadow-[0_0_30px_rgba(190,242,100,.18)]">
             <Gamepad2 className="size-5" strokeWidth={2.4} />
           </span>
-          <span className="font-heading text-lg font-black tracking-[-0.04em]">GAMEBOX</span>
+          <span className="font-heading text-lg font-black tracking-[-0.04em]">GAMELOG</span>
         </Link>
 
         <nav aria-label="Main navigation" className="flex items-center gap-1">
@@ -68,10 +69,10 @@ export async function SiteHeader() {
               </Link>
               <Link
                 href={`/users/${user.username}`}
-                className="ml-1 flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 text-xs font-black text-white ring-2 ring-white/10 transition hover:ring-lime-300/50"
+                className="ml-1 rounded-full outline-none ring-offset-2 ring-offset-[#080b12] hover:ring-2 hover:ring-lime-300/50 focus-visible:ring-2 focus-visible:ring-lime-300"
                 aria-label="Your profile"
               >
-                {user.username[0]?.toUpperCase()}
+                <UserAvatar username={user.username} hasAvatar={Boolean(user.avatarUpdatedAt)} className="size-8" />
               </Link>
               <form action={logoutAction}>
                 <Button

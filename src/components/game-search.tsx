@@ -11,6 +11,7 @@ export function GameSearch({ initialGames }: { initialGames: GameSummary[] }) {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GameSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const games = query.trim() ? searchResults : initialGames;
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export function GameSearch({ initialGames }: { initialGames: GameSummary[] }) {
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
       setLoading(true);
+      setError(null);
       try {
         const response = await fetch(`/api/games/search?q=${encodeURIComponent(normalized)}`, {
           signal: controller.signal,
@@ -27,6 +29,13 @@ export function GameSearch({ initialGames }: { initialGames: GameSummary[] }) {
         if (response.ok) {
           const data = (await response.json()) as { games: GameSummary[] };
           setSearchResults(data.games);
+        } else {
+          const data = (await response.json().catch(() => null)) as { error?: string } | null;
+          setError(data?.error ?? "Search is temporarily unavailable.");
+        }
+      } catch (requestError) {
+        if (!(requestError instanceof DOMException && requestError.name === "AbortError")) {
+          setError("Search is temporarily unavailable.");
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -49,6 +58,7 @@ export function GameSearch({ initialGames }: { initialGames: GameSummary[] }) {
             const value = event.target.value;
             setQuery(value);
             if (!value.trim()) setLoading(false);
+            if (!value.trim()) setError(null);
           }}
           placeholder="Search for a game…"
           aria-label="Search games"
@@ -74,6 +84,10 @@ export function GameSearch({ initialGames }: { initialGames: GameSummary[] }) {
         ) : null}
       </div>
 
+      {error ? (
+        <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-rose-300">{error}</p>
+      ) : null}
+
       <div className="mt-10 flex items-end justify-between">
         <div>
           <p className="text-xs font-bold tracking-[0.16em] text-lime-300 uppercase">
@@ -90,8 +104,8 @@ export function GameSearch({ initialGames }: { initialGames: GameSummary[] }) {
 
       {games.length ? (
         <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
-          {games.map((game) => (
-            <GameCard key={game.id} game={game} />
+          {games.map((game, index) => (
+            <GameCard key={game.id} game={game} priority={!query.trim() && index < 2} />
           ))}
         </div>
       ) : (

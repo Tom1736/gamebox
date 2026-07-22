@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { authSchema, reviewSchema, usernameSchema } from "./validation";
+import {
+  authSchema,
+  commentSchema,
+  profileSchema,
+  reviewSchema,
+  usernameSchema,
+} from "./validation";
 
 describe("usernameSchema", () => {
   it("normalizes valid usernames", () => {
@@ -24,10 +30,15 @@ describe("authSchema", () => {
 });
 
 describe("reviewSchema", () => {
-  it("accepts the complete one-to-five rating range", () => {
-    for (let rating = 1; rating <= 5; rating += 1) {
+  it("accepts the complete half-to-five rating range", () => {
+    for (let rating = 0.5; rating <= 5; rating += 0.5) {
       expect(
-        reviewSchema.safeParse({ gameId: 121, rating, body: "Good game" })
+        reviewSchema.safeParse({
+          gameId: 121,
+          rating,
+          body: "Good game",
+          hoursPlayed: "12.5",
+        })
           .success,
       ).toBe(true);
     }
@@ -35,10 +46,13 @@ describe("reviewSchema", () => {
 
   it("rejects ratings outside the supported range", () => {
     expect(
-      reviewSchema.safeParse({ gameId: 121, rating: 0, body: "" }).success,
+      reviewSchema.safeParse({ gameId: 121, rating: 0, body: "", hoursPlayed: "" }).success,
     ).toBe(false);
     expect(
-      reviewSchema.safeParse({ gameId: 121, rating: 6, body: "" }).success,
+      reviewSchema.safeParse({ gameId: 121, rating: 6, body: "", hoursPlayed: "" }).success,
+    ).toBe(false);
+    expect(
+      reviewSchema.safeParse({ gameId: 121, rating: 3.25, body: "", hoursPlayed: "" }).success,
     ).toBe(false);
   });
 
@@ -48,7 +62,23 @@ describe("reviewSchema", () => {
         gameId: 121,
         rating: 5,
         body: "a".repeat(2001),
+        hoursPlayed: "",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("profileSchema", () => {
+  it("accepts an optional description up to 500 characters", () => {
+    expect(profileSchema.safeParse({ bio: "Co-op fan", removeAvatar: false }).success).toBe(true);
+    expect(profileSchema.safeParse({ bio: "a".repeat(501), removeAvatar: false }).success).toBe(false);
+  });
+});
+
+describe("commentSchema", () => {
+  it("requires a non-empty comment with a valid review id", () => {
+    const reviewId = "cm12345678901234567890123";
+    expect(commentSchema.safeParse({ reviewId, body: "I agree!" }).success).toBe(true);
+    expect(commentSchema.safeParse({ reviewId, body: "   " }).success).toBe(false);
   });
 });

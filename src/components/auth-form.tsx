@@ -77,7 +77,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           href={isLogin ? "/register" : "/login"}
           className="font-semibold text-lime-300 hover:text-lime-200"
         >
-          {isLogin ? "Join Gamebox" : "Sign in"}
+          {isLogin ? "Join Gamelog" : "Sign in"}
         </Link>
       </p>
     </form>

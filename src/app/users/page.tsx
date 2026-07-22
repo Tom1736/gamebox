@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Search, Star, Users } from "lucide-react";
 import { FriendButton } from "@/components/friend-button";
+import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { prisma } from "@/lib/prisma";
 import { searchUsers } from "@/lib/data";
@@ -44,15 +45,15 @@ export default async function UsersPage({
               const isViewer = user.id === viewer?.id;
               return (
                 <article key={user.id} className="flex items-center gap-4 rounded-2xl border border-white/8 bg-white/[0.035] p-4">
-                  <Link href={`/users/${user.username}`} className="flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-lg font-black text-white ring-2 ring-white/10">
-                    {user.username[0]?.toUpperCase()}
+                  <Link href={`/users/${user.username}`}>
+                    <UserAvatar username={user.username} hasAvatar={Boolean(user.avatarUpdatedAt)} className="size-12" fallbackClassName="text-lg" />
                   </Link>
                   <div className="min-w-0 flex-1">
                     <Link href={`/users/${user.username}`} className="truncate font-bold text-white hover:text-lime-300">@{user.username}</Link>
                     <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-white/38">
-                      <span>{user._count.reviews} reviews</span>
+                      <span>{user._count.reviews} {user._count.reviews === 1 ? "review" : "reviews"}</span>
                       <span className="flex items-center gap-1"><Users className="size-3" /> {user._count.friends}</span>
-                      {average ? <span className="flex items-center gap-1"><Star className="size-3 fill-lime-300 text-lime-300" /> {average.toFixed(1)}</span> : null}
+                      {average !== null ? <span className="flex items-center gap-1"><Star className="size-3 fill-lime-300 text-lime-300" /> {average.toFixed(1)}</span> : null}
                     </div>
                   </div>
                   {viewer && !isViewer ? <FriendButton username={user.username} isFriend={friendIds.has(user.id)} /> : null}

@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/reviews";
 import { StarInput } from "@/components/star-rating";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 const initialState: ReviewActionState = {};
@@ -18,7 +19,7 @@ export function ReviewForm({
   existingReview,
 }: {
   gameId: number;
-  existingReview?: { rating: number; body: string | null } | null;
+  existingReview?: { rating: number; body: string | null; hoursPlayed: number | null } | null;
 }) {
   const [state, formAction, pending] = useActionState(
     saveReviewAction,
@@ -43,6 +44,28 @@ export function ReviewForm({
             {error}
           </p>
         ))}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-white" htmlFor="hoursPlayed">
+            Hours played <span className="font-normal text-white/35">(optional)</span>
+          </label>
+          <div className="relative max-w-48">
+            <Input
+              id="hoursPlayed"
+              name="hoursPlayed"
+              type="number"
+              min="0"
+              max="100000"
+              step="0.1"
+              defaultValue={existingReview?.hoursPlayed ?? ""}
+              placeholder="42.5"
+              className="border-white/10 bg-black/20 pr-14 text-white placeholder:text-white/25"
+            />
+            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-white/35">hours</span>
+          </div>
+          {state.fieldErrors?.hoursPlayed?.map((error) => (
+            <p key={error} className="mt-2 text-xs text-rose-300">{error}</p>
+          ))}
+        </div>
         <div>
           <label className="mb-2 block text-sm font-medium text-white" htmlFor="body">
             Review <span className="font-normal text-white/35">(optional)</span>

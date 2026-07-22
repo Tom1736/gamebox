@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { mutationRateLimit } from "@/lib/persistent-rate-limit";
 import { requireUser } from "@/lib/session";
 import { usernameSchema } from "@/lib/validation";
 
 export async function toggleFriendAction(formData: FormData) {
   const user = await requireUser();
+  const rateLimit = await mutationRateLimit(user.id);
+  if (!rateLimit.allowed) return;
   const parsedUsername = usernameSchema.safeParse(formData.get("username"));
   if (!parsedUsername.success || parsedUsername.data === user.username) return;
 
@@ -37,6 +40,8 @@ export async function toggleFriendAction(formData: FormData) {
 
 export async function markNotificationsReadAction() {
   const user = await requireUser();
+  const rateLimit = await mutationRateLimit(user.id);
+  if (!rateLimit.allowed) return;
   await prisma.user.update({
     where: { id: user.id },
     data: { lastNotificationCheckAt: new Date() },

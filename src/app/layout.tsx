@@ -4,8 +4,8 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
   title: {
-    default: "Gamebox — Rate what you play",
-    template: "%s · Gamebox",
+    default: "Gamelog — Rate what you play",
+    template: "%s · Gamelog",
   },
   description: "A small, social home for the games you play and the people you play with.",
 };

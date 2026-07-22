@@ -21,6 +21,8 @@ type IgdbGame = {
   first_release_date?: number;
   total_rating?: number;
   total_rating_count?: number;
+  version_parent?: number;
+  game_type?: number;
   cover?: { image_id: string };
   genres?: { name: string }[];
   platforms?: { name: string }[];
@@ -210,8 +212,10 @@ async function getAccessToken() {
     client_secret: clientSecret,
     grant_type: "client_credentials",
   });
-  const response = await fetch(`https://id.twitch.tv/oauth2/token?${params}`, {
+  const response = await fetch("https://id.twitch.tv/oauth2/token", {
     method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params,
     cache: "no-store",
   });
   if (!response.ok) throw new Error("Could not authenticate with IGDB.");
@@ -247,7 +251,16 @@ async function queryIgdb(body: string) {
 }
 
 const fields =
-  "fields id,slug,name,summary,first_release_date,total_rating,total_rating_count,cover.image_id,genres.name,platforms.name;";
+  "fields id,slug,name,summary,first_release_date,total_rating,total_rating_count,version_parent,game_type,cover.image_id,genres.name,platforms.name;";
+
+function isStandaloneListing(game: IgdbGame) {
+  return game.version_parent == null && game.game_type !== 14;
+}
+
+function logFallback(context: string, error: unknown) {
+  const message = error instanceof Error ? error.message : "Unknown IGDB error";
+  console.warn(`${context}: ${message}`);
+}
 
 export function normalizeIgdbGame(game: IgdbGame): GameSummary {
   return {
@@ -274,11 +287,11 @@ export async function getPopularGames() {
 
   try {
     const games = await queryIgdb(
-      `${fields} where cover != null & total_rating_count > 50; sort total_rating_count desc; limit 12;`,
+      `${fields} where cover != null & total_rating_count > 50; sort total_rating_count desc; limit 30;`,
     );
-    return games.map(normalizeIgdbGame);
+    return games.filter(isStandaloneListing).slice(0, 12).map(normalizeIgdbGame);
   } catch (error) {
-    console.warn("IGDB popular games fallback:", error);
+    logFallback("IGDB popular games fallback", error);
     return fallbackGames;
   }
 }
@@ -297,11 +310,11 @@ export async function searchGames(query: string) {
   try {
     const escaped = normalizedQuery.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
     const games = await queryIgdb(
-      `search "${escaped}"; ${fields} where cover != null; limit 20;`,
+      `search "${escaped}"; ${fields} where cover != null; limit 100;`,
     );
-    return games.map(normalizeIgdbGame);
+    return games.filter(isStandaloneListing).slice(0, 20).map(normalizeIgdbGame);
   } catch (error) {
-    console.warn("IGDB search fallback:", error);
+    logFallback("IGDB search fallback", error);
     return [];
   }
 }
@@ -314,7 +327,7 @@ export async function getGame(gameId: number) {
     const games = await queryIgdb(`${fields} where id = ${gameId}; limit 1;`);
     return games[0] ? normalizeIgdbGame(games[0]) : fallback;
   } catch (error) {
-    console.warn("IGDB game fallback:", error);
+    logFallback("IGDB game fallback", error);
     return fallback;
   }
 }

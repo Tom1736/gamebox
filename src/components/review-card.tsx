@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { MessageSquareText } from "lucide-react";
+import { Clock3, MessageSquareText } from "lucide-react";
 import { GameCover } from "@/components/game-cover";
 import { Stars } from "@/components/star-rating";
 
 type ReviewCardProps = {
   review: {
+    id: string;
     rating: number;
     body: string | null;
+    hoursPlayed?: number | null;
     createdAt: Date | string;
     updatedAt?: Date | string;
-    user: { username: string };
+    user: { username: string; avatarUpdatedAt?: Date | string | null };
     game: {
       id: number;
       name: string;
@@ -17,6 +19,7 @@ type ReviewCardProps = {
       releaseDate?: Date | string | null;
       genres?: string[];
     };
+    _count?: { comments: number };
   };
   compact?: boolean;
 };
@@ -28,8 +31,13 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
 });
 
 export function ReviewCard({ review, compact = false }: ReviewCardProps) {
+  const commentCount = review._count?.comments ?? 0;
+
   return (
-    <article className="group grid grid-cols-[72px_1fr] gap-4 rounded-2xl border border-white/8 bg-white/[0.035] p-4 transition hover:border-white/15 hover:bg-white/[0.055] sm:grid-cols-[88px_1fr]">
+    <article
+      id={`review-${review.id}`}
+      className="group grid grid-cols-[72px_1fr] gap-4 rounded-2xl border border-white/8 bg-white/[0.035] p-4 transition hover:border-white/15 hover:bg-white/[0.055] sm:grid-cols-[88px_1fr]"
+    >
       <Link href={`/games/${review.game.id}`} className="block">
         <GameCover
           id={review.game.id}
@@ -62,6 +70,11 @@ export function ReviewCard({ review, compact = false }: ReviewCardProps) {
           </div>
           <Stars rating={review.rating} />
         </div>
+        {review.hoursPlayed !== null && review.hoursPlayed !== undefined ? (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-white/38">
+            <Clock3 className="size-3.5" /> {review.hoursPlayed.toLocaleString()} hours played
+          </p>
+        ) : null}
         {review.body ? (
           <p
             className={
@@ -77,6 +90,13 @@ export function ReviewCard({ review, compact = false }: ReviewCardProps) {
             <MessageSquareText className="size-3.5" /> Rated without a written review
           </p>
         )}
+        <Link
+          href={`/games/${review.game.id}#review-${review.id}`}
+          className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-white/35 hover:text-lime-300"
+        >
+          <MessageSquareText className="size-3.5" />
+          {commentCount} {commentCount === 1 ? "comment" : "comments"}
+        </Link>
       </div>
     </article>
   );

@@ -1,6 +1,6 @@
-# Gamebox
+# Gamelog
 
-Gamebox is a private-friendly social game diary for a small group. Players can discover games through IGDB, rate them from one to five stars, write reviews, browse other players, add friends, and follow new friend activity.
+Gamelog is a private-friendly social game diary for a small group. Players can discover games through IGDB, rate them from half a star to five stars, write reviews, browse other players, add friends, and follow new friend activity.
 
 ## What is included
 
@@ -9,6 +9,10 @@ Gamebox is a private-friendly social game diary for a small group. Players can d
 - IGDB game discovery, search, cover art, metadata, and popular-game lists
 - Curated fallback games when IGDB is not configured, so the UI remains usable
 - One rating/review per player and game, editable or removable at any time
+- Half-star ratings, optional hours played, and comments on friends' reviews
+- Public top-three favorites and wishlists
+- Profile descriptions and database-backed profile pictures
+- A local top-ten chart based on Gamelog user ratings
 - Searchable player directory and public review-only profiles
 - One-click friends and an unread friend-review activity feed
 - PostgreSQL migrations with database constraints for rating bounds and self-friendships
@@ -17,7 +21,7 @@ Gamebox is a private-friendly social game diary for a small group. Players can d
 
 ## Local development
 
-Requirements: Node.js 20.19 or newer and PostgreSQL.
+Requirements: Node.js 20.19 or newer and Docker Desktop.
 
 1. Install dependencies:
 
@@ -31,14 +35,20 @@ Requirements: Node.js 20.19 or newer and PostgreSQL.
    cp .env.example .env
    ```
 
-3. Apply migrations and generate the client:
+3. Start PostgreSQL with the local-only port override:
+
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db
+   ```
+
+4. Apply migrations and generate the client:
 
    ```bash
    npm run db:deploy
    npm run db:generate
    ```
 
-4. Start the app:
+5. Start the app:
 
    ```bash
    npm run dev
@@ -48,7 +58,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## IGDB setup
 
-Gamebox works with its fallback catalog without credentials. To enable the complete catalog:
+Gamelog works with its fallback catalog without credentials. To enable the complete catalog:
 
 1. Register an application in the Twitch developer console.
 2. Put the application's client ID and secret in `.env` as `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET`.

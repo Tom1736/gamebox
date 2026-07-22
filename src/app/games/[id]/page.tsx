@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Gamepad2, MessageSquareText, Star } from "lucide-react";
 import { GameCover } from "@/components/game-cover";
+import { GameListControls } from "@/components/game-list-controls";
 import { ReviewForm } from "@/components/review-form";
+import { ReviewThread } from "@/components/review-thread";
 import { Stars } from "@/components/star-rating";
 import { buttonVariants } from "@/components/ui/button";
 import { getGameReviews } from "@/lib/data";
@@ -32,12 +34,22 @@ export default async function GamePage({ params }: GamePageProps) {
     getGameReviews(gameId),
     getCurrentUser(),
   ]);
-  const existingReview = user
-    ? await prisma.review.findUnique({
-        where: { userId_gameId: { userId: user.id, gameId } },
-        select: { rating: true, body: true },
-      })
-    : null;
+  const [existingReview, wishlistEntry, favoriteEntry] = user
+    ? await Promise.all([
+        prisma.review.findUnique({
+          where: { userId_gameId: { userId: user.id, gameId } },
+          select: { rating: true, body: true, hoursPlayed: true },
+        }),
+        prisma.wishlistEntry.findUnique({
+          where: { userId_gameId: { userId: user.id, gameId } },
+          select: { gameId: true },
+        }),
+        prisma.favoriteGame.findUnique({
+          where: { userId_gameId: { userId: user.id, gameId } },
+          select: { position: true },
+        }),
+      ])
+    : [null, null, null];
   const average = reviews.length
     ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
     : null;
@@ -74,10 +86,10 @@ export default async function GamePage({ params }: GamePageProps) {
             {game.summary ? <p className="mt-6 max-w-3xl text-base leading-7 text-white/58">{game.summary}</p> : null}
             <div className="mt-8 flex flex-wrap gap-3">
               <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                <p className="text-[10px] font-bold tracking-wider text-white/35 uppercase">Gamebox</p>
+                <p className="text-[10px] font-bold tracking-wider text-white/35 uppercase">Gamelog</p>
                 <div className="mt-1 flex items-center gap-2">
-                  {average ? <Stars rating={average} /> : <span className="text-sm text-white/35">Not rated yet</span>}
-                  {average ? <span className="text-sm font-bold text-white">{average.toFixed(1)}</span> : null}
+                  {average !== null ? <Stars rating={average} /> : <span className="text-sm text-white/35">Not rated yet</span>}
+                  {average !== null ? <span className="text-sm font-bold text-white">{average.toFixed(1)}</span> : null}
                 </div>
               </div>
               {game.rating ? (
@@ -87,6 +99,15 @@ export default async function GamePage({ params }: GamePageProps) {
                 </div>
               ) : null}
             </div>
+            {user ? (
+              <div className="mt-5">
+                <GameListControls
+                  gameId={game.id}
+                  isWishlisted={Boolean(wishlistEntry)}
+                  favoritePosition={favoriteEntry?.position ?? null}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -103,13 +124,7 @@ export default async function GamePage({ params }: GamePageProps) {
           {reviews.length ? (
             <div className="mt-7 space-y-4">
               {reviews.map((review) => (
-                <article key={review.id} className="rounded-2xl border border-white/8 bg-white/[0.035] p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <Link href={`/users/${review.user.username}`} className="font-bold text-white hover:text-lime-300">@{review.user.username}</Link>
-                    <Stars rating={review.rating} />
-                  </div>
-                  {review.body ? <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-white/65">{review.body}</p> : <p className="mt-4 text-sm text-white/30 italic">Rated without a written review.</p>}
-                </article>
+                <ReviewThread key={review.id} review={review} viewer={user} />
               ))}
             </div>
           ) : (

@@ -50,6 +50,7 @@ export const getCurrentUser = cache(async () => {
           username: true,
           createdAt: true,
           lastNotificationCheckAt: true,
+          avatarUpdatedAt: true,
         },
       },
     },

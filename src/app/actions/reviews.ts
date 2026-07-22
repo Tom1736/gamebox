@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { gameUpsertData } from "@/lib/games";
 import { getGame } from "@/lib/igdb";
+import { mutationRateLimit } from "@/lib/persistent-rate-limit";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { reviewSchema } from "@/lib/validation";
@@ -12,6 +14,7 @@ export type ReviewActionState = {
   fieldErrors?: {
     rating?: string[];
     body?: string[];
+    hoursPlayed?: string[];
   };
 };
 
@@ -20,10 +23,15 @@ export async function saveReviewAction(
   formData: FormData,
 ): Promise<ReviewActionState> {
   const user = await requireUser();
+  const rateLimit = await mutationRateLimit(user.id);
+  if (!rateLimit.allowed) {
+    return { error: `You are doing that too quickly. Try again in ${rateLimit.retryAfterSeconds} seconds.` };
+  }
   const result = reviewSchema.safeParse({
     gameId: formData.get("gameId"),
     rating: formData.get("rating"),
     body: formData.get("body"),
+    hoursPlayed: formData.get("hoursPlayed"),
   });
 
   if (!result.success) {
@@ -38,27 +46,9 @@ export async function saveReviewAction(
       where: { id: game.id },
       create: {
         id: game.id,
-        slug: game.slug,
-        name: game.name,
-        summary: game.summary,
-        coverUrl: game.coverUrl,
-        releaseDate: game.releaseDate ? new Date(game.releaseDate) : null,
-        genres: game.genres,
-        platforms: game.platforms,
-        igdbRating: game.rating,
-        popularity: game.popularity,
+        ...gameUpsertData(game),
       },
-      update: {
-        slug: game.slug,
-        name: game.name,
-        summary: game.summary,
-        coverUrl: game.coverUrl,
-        releaseDate: game.releaseDate ? new Date(game.releaseDate) : null,
-        genres: game.genres,
-        platforms: game.platforms,
-        igdbRating: game.rating,
-        popularity: game.popularity,
-      },
+      update: gameUpsertData(game),
     });
 
     await tx.review.upsert({
@@ -70,10 +60,12 @@ export async function saveReviewAction(
         gameId: game.id,
         rating: result.data.rating,
         body: result.data.body || null,
+        hoursPlayed: result.data.hoursPlayed ?? null,
       },
       update: {
         rating: result.data.rating,
         body: result.data.body || null,
+        hoursPlayed: result.data.hoursPlayed ?? null,
       },
     });
   });
@@ -87,6 +79,8 @@ export async function saveReviewAction(
 
 export async function deleteReviewAction(formData: FormData) {
   const user = await requireUser();
+  const rateLimit = await mutationRateLimit(user.id);
+  if (!rateLimit.allowed) return;
   const gameId = Number(formData.get("gameId"));
   if (!Number.isInteger(gameId) || gameId <= 0) return;
 

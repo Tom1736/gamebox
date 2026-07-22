@@ -1,19 +1,21 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Sparkles, Trophy, Users } from "lucide-react";
 import { GameCard } from "@/components/game-card";
 import { GameCover } from "@/components/game-cover";
 import { ReviewCard } from "@/components/review-card";
+import { Stars } from "@/components/star-rating";
 import { buttonVariants } from "@/components/ui/button";
-import { getRecentReviews } from "@/lib/data";
+import { getHighestRatedGames, getRecentReviews } from "@/lib/data";
 import { getPopularGames } from "@/lib/igdb";
 import { getCurrentUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export default async function Home() {
-  const [games, reviews, user] = await Promise.all([
+  const [games, reviews, user, highestRated] = await Promise.all([
     getPopularGames(),
     getRecentReviews(4),
     getCurrentUser(),
+    getHighestRatedGames(10),
   ]);
   const featured = games[0];
 
@@ -108,6 +110,42 @@ export default async function Home() {
 
       <section className="border-y border-white/8 bg-white/[0.018]">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <div>
+            <p className="section-kicker">Rated by your crew</p>
+            <h2 className="section-title flex items-center gap-3"><Trophy className="size-7 text-lime-300" /> Gamelog top 10</h2>
+          </div>
+          {highestRated.length ? (
+            <ol className="mt-8 grid gap-3 md:grid-cols-2">
+              {highestRated.map((game, index) => (
+                <li key={game.id}>
+                  <Link
+                    href={`/games/${game.id}`}
+                    className="group grid grid-cols-[2rem_52px_1fr_auto] items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-3 hover:border-lime-300/20 hover:bg-white/[0.05]"
+                  >
+                    <span className="text-center text-lg font-black text-white/25">{index + 1}</span>
+                    <GameCover id={game.id} name={game.name} coverUrl={game.coverUrl} sizes="52px" className="rounded-md" />
+                    <div className="min-w-0">
+                      <h3 className="truncate font-bold text-white group-hover:text-lime-300">{game.name}</h3>
+                      <p className="mt-1 text-xs text-white/35">{game.reviewCount} {game.reviewCount === 1 ? "rating" : "ratings"}</p>
+                    </div>
+                    <div className="text-right">
+                      <Stars rating={game.averageRating} />
+                      <p className="mt-1 text-xs font-black text-white">{game.averageRating.toFixed(1)}</p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="mt-8 rounded-2xl border border-dashed border-white/10 py-12 text-center text-sm text-white/40">
+              The leaderboard will appear after the first rating.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between gap-6">
             <div>
               <p className="section-kicker">Fresh from the crew</p>
@@ -136,7 +174,7 @@ export default async function Home() {
       </section>
 
       <footer className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-10 text-xs text-white/30 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-        <p>Gamebox — made for a small, opinionated group of friends.</p>
+        <p>Gamelog — made for a small, opinionated group of friends.</p>
         <p>Game data provided by IGDB.</p>
       </footer>
     </main>
