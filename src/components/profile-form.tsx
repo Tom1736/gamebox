@@ -23,7 +23,9 @@ export function ProfileForm({ bio, hasAvatar }: { bio: string | null; hasAvatar:
           accept="image/jpeg,image/png,image/webp,image/gif"
           className="h-auto border-white/10 bg-white/5 py-2 text-white file:mr-3 file:rounded-md file:border-0 file:bg-lime-300 file:px-3 file:py-1.5 file:font-semibold file:text-slate-950"
         />
-        <p className="mt-2 text-xs text-white/35">JPEG, PNG, WebP, or GIF. Maximum 1 MB.</p>
+        <p className="mt-2 text-xs text-white/35">
+          JPEG, PNG, WebP, or GIF. Maximum 8 MB. Images are cropped and resized to 512 × 512.
+        </p>
         {hasAvatar ? (
           <label className="mt-3 flex items-center gap-2 text-sm text-white/55">
             <input type="checkbox" name="removeAvatar" className="accent-lime-300" /> Remove current picture

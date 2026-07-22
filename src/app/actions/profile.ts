@@ -1,18 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  AvatarImageError,
+  optimizeAvatarUpload,
+} from "@/lib/avatar-image";
 import { mutationRateLimit } from "@/lib/persistent-rate-limit";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { profileSchema } from "@/lib/validation";
 
-const MAX_AVATAR_BYTES = 1024 * 1024 * 5; // 5 MB
-const ACCEPTED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-
 export type ProfileActionState = {
   success?: string;
   error?: string;
   fieldErrors?: { bio?: string[] };
+};
+
+type AvatarUpdateData = {
+  avatarBytes?: Uint8Array<ArrayBuffer> | null;
+  avatarMimeType?: string | null;
+  avatarUpdatedAt?: Date | null;
 };
 
 export async function saveProfileAction(
@@ -33,22 +40,28 @@ export async function saveProfileAction(
 
   const avatar = formData.get("avatar");
   const hasAvatar = avatar instanceof File && avatar.size > 0;
-  if (hasAvatar && !ACCEPTED_AVATAR_TYPES.has(avatar.type)) {
-    return { error: "Use a JPEG, PNG, WebP, or GIF image." };
-  }
-  if (hasAvatar && avatar.size > MAX_AVATAR_BYTES) {
-    return { error: "Keep your profile picture under 1 MB." };
-  }
 
-  const avatarData = hasAvatar
-    ? {
-        avatarBytes: new Uint8Array(await avatar.arrayBuffer()),
-        avatarMimeType: avatar.type,
+  let avatarData: AvatarUpdateData = result.data.removeAvatar
+    ? { avatarBytes: null, avatarMimeType: null, avatarUpdatedAt: null }
+    : {};
+
+  if (hasAvatar) {
+    try {
+      const optimized = await optimizeAvatarUpload(avatar);
+      avatarData = {
+        avatarBytes: optimized.bytes,
+        avatarMimeType: optimized.mimeType,
         avatarUpdatedAt: new Date(),
-      }
-    : result.data.removeAvatar
-      ? { avatarBytes: null, avatarMimeType: null, avatarUpdatedAt: null }
-      : {};
+      };
+    } catch (error) {
+      return {
+        error:
+          error instanceof AvatarImageError
+            ? error.message
+            : "That image could not be processed.",
+      };
+    }
+  }
 
   await prisma.user.update({
     where: { id: user.id },
