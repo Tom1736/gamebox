@@ -5,7 +5,7 @@ Gamelog is a private-friendly social game diary for a small group. Players can d
 Update app on raspberry pi from git:
 ```bash
    git pull
-   docker compose up -d --build
+   sudo docker compose up -d --build
    ```
 ## What is included
 
