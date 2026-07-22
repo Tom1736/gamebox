@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { profileSchema } from "@/lib/validation";
 
-const MAX_AVATAR_BYTES = 1024 * 1024;
+const MAX_AVATAR_BYTES = 1024 * 1024 * 5; // 5 MB
 const ACCEPTED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 export type ProfileActionState = {
