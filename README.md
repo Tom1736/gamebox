@@ -1,7 +1,12 @@
 # Gamelog
 
 Gamelog is a private-friendly social game diary for a small group. Players can discover games through IGDB, rate them from half a star to five stars, write reviews, browse other players, add friends, and follow new friend activity.
-
+## 
+Update app on raspberry pi from git:
+```bash
+   git pull
+   docker compose up -d --build
+   ```
 ## What is included
 
 - Username/password accounts with bcrypt password hashes; no email required
@@ -116,3 +121,6 @@ Persistent data lives in named Docker volumes. Back up `postgres_data` before ma
 ## Session behavior
 
 Sessions last 30 days. The browser receives only a random token in an HTTP-only, same-site cookie; PostgreSQL stores only its SHA-256 hash. The `Secure` cookie flag is enabled in production. Signing out removes both the current database session and its browser cookie.
+
+
+
